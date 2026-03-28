@@ -11,13 +11,14 @@ Desenvolver um sistema capaz de gerenciar o fluxo de atendimentos de uma empresa
 
 O sistema é voltado para empresas e organizações que realizam atendimentos ao público, como bancos, clínicas, repartições públicas, lojas e centrais de suporte. Também atende gestores e atendentes que precisam organizar e acompanhar o fluxo de clientes de forma prática e eficiente.
 
-Alunos:
-Carlos Eduardo Passos Silva
-Eduardo Micael Saraiva Maia
-Joaquim
-Lucas
-Renato 
+### Alunos:
+### Carlos Eduardo Passos Silva
+### Eduardo Micael Saraiva Maia
+### Joaquim
+### Lucas
+### Renato 
 
+```mermaid
 erDiagram
 
   PESSOA {
@@ -91,3 +92,4 @@ erDiagram
   FILA          ||--o{ ATENDIMENTO    : "recebe"
   ATENDENTE     ||--o{ ATENDIMENTO    : "realiza"
   CLIENTE       ||--o{ ATENDIMENTO    : "e atendido em"
+```
