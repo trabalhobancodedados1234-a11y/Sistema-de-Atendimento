@@ -18,9 +18,9 @@ O sistema é voltado para empresas e organizações que realizam atendimentos ao
 ## 👨‍💻 Alunos
 - Carlos Eduardo Passos Silva
 - Eduardo Micael Saraiva Maia
-- Joaquim
-- Lucas
-- Renato
+- Joaquim Camillo pereira neto
+- Lucas Gabriel Barreto Oliveira
+- Renato Luiz
 
 ---
 
