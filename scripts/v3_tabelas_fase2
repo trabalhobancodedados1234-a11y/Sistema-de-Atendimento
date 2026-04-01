@@ -1,0 +1,199 @@
+-- ============================================================
+--  SCHEMA COMPLETO DO BANCO DE DADOS
+--  Sistema de Gestão com Inovação: Atendimento Inteligente
+--  Versão: 1.0
+-- ============================================================
+ 
+-- ============================================================
+-- TABELA: usuarios
+-- Controla o acesso ao sistema (login/autenticação)
+-- ============================================================
+CREATE TABLE usuarios (
+    id            SERIAL PRIMARY KEY,
+    nome          VARCHAR(120)        NOT NULL,
+    email         VARCHAR(180)        NOT NULL UNIQUE,
+    senha_hash    VARCHAR(255)        NOT NULL,
+    perfil        VARCHAR(30)         NOT NULL DEFAULT 'operador'
+                    CHECK (perfil IN ('admin', 'gerente', 'operador')),
+    ativo         BOOLEAN             NOT NULL DEFAULT TRUE,
+    criado_em     TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: pessoas
+-- Cadastro de clientes / pacientes / beneficiários
+-- ============================================================
+CREATE TABLE pessoas (
+    id            SERIAL PRIMARY KEY,
+    nome          VARCHAR(150)        NOT NULL,
+    cpf           CHAR(11)            UNIQUE,
+    data_nasc     DATE,
+    genero        CHAR(1)             CHECK (genero IN ('M','F','O')),
+    email         VARCHAR(180),
+    telefone      VARCHAR(20),
+    endereco      VARCHAR(255),
+    cidade        VARCHAR(100),
+    estado        CHAR(2),
+    cep           CHAR(8),
+    observacoes   TEXT,
+    ativo         BOOLEAN             NOT NULL DEFAULT TRUE,
+    criado_por    INT                 REFERENCES usuarios(id),
+    criado_em     TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: categorias
+-- Categorias de produtos / serviços / atendimentos
+-- ============================================================
+CREATE TABLE categorias (
+    id            SERIAL PRIMARY KEY,
+    nome          VARCHAR(100)        NOT NULL UNIQUE,
+    descricao     TEXT,
+    tipo          VARCHAR(30)         NOT NULL DEFAULT 'produto'
+                    CHECK (tipo IN ('produto', 'servico', 'atendimento')),
+    ativo         BOOLEAN             NOT NULL DEFAULT TRUE,
+    criado_em     TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: produtos
+-- Produtos, mercadorias ou serviços oferecidos
+-- ============================================================
+CREATE TABLE produtos (
+    id             SERIAL PRIMARY KEY,
+    codigo         VARCHAR(50)         NOT NULL UNIQUE,
+    nome           VARCHAR(150)        NOT NULL,
+    descricao      TEXT,
+    categoria_id   INT                 REFERENCES categorias(id),
+    preco          NUMERIC(12,2)       NOT NULL DEFAULT 0,
+    custo          NUMERIC(12,2)       DEFAULT 0,
+    estoque_atual  INT                 NOT NULL DEFAULT 0,
+    estoque_minimo INT                 NOT NULL DEFAULT 0,
+    unidade        VARCHAR(20)         NOT NULL DEFAULT 'un',
+    imagem_url     VARCHAR(500),
+    ativo          BOOLEAN             NOT NULL DEFAULT TRUE,
+    criado_por     INT                 REFERENCES usuarios(id),
+    criado_em      TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em  TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: atendimentos
+-- Registro de atendimentos / pedidos / consultas
+-- (tabela central da inovação: vincula pessoa → usuário → produtos)
+-- ============================================================
+CREATE TABLE atendimentos (
+    id             SERIAL PRIMARY KEY,
+    numero         VARCHAR(20)         NOT NULL UNIQUE,
+    pessoa_id      INT                 NOT NULL REFERENCES pessoas(id),
+    usuario_id     INT                 NOT NULL REFERENCES usuarios(id),
+    status         VARCHAR(30)         NOT NULL DEFAULT 'aberto'
+                     CHECK (status IN ('aberto','em_andamento','concluido','cancelado')),
+    prioridade     VARCHAR(10)         NOT NULL DEFAULT 'normal'
+                     CHECK (prioridade IN ('baixa','normal','alta','urgente')),
+    canal          VARCHAR(30)         DEFAULT 'presencial'
+                     CHECK (canal IN ('presencial','telefone','email','chat','app')),
+    descricao      TEXT,
+    observacoes    TEXT,
+    total          NUMERIC(12,2)       NOT NULL DEFAULT 0,
+    desconto       NUMERIC(12,2)       NOT NULL DEFAULT 0,
+    total_final    NUMERIC(12,2)       NOT NULL DEFAULT 0,
+    data_abertura  TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_conclusao TIMESTAMP,
+    criado_em      TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em  TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: atendimento_itens
+-- Itens (produtos/serviços) vinculados a um atendimento
+-- ============================================================
+CREATE TABLE atendimento_itens (
+    id              SERIAL PRIMARY KEY,
+    atendimento_id  INT            NOT NULL REFERENCES atendimentos(id) ON DELETE CASCADE,
+    produto_id      INT            NOT NULL REFERENCES produtos(id),
+    quantidade      INT            NOT NULL DEFAULT 1 CHECK (quantidade > 0),
+    preco_unitario  NUMERIC(12,2)  NOT NULL,
+    desconto_item   NUMERIC(12,2)  NOT NULL DEFAULT 0,
+    subtotal        NUMERIC(12,2)  NOT NULL,
+    observacao      TEXT,
+    criado_em       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: movimentacoes_estoque
+-- Rastreia entradas e saídas do estoque (INOVAÇÃO: rastreabilidade)
+-- ============================================================
+CREATE TABLE movimentacoes_estoque (
+    id              SERIAL PRIMARY KEY,
+    produto_id      INT            NOT NULL REFERENCES produtos(id),
+    tipo            VARCHAR(10)    NOT NULL CHECK (tipo IN ('entrada','saida','ajuste')),
+    quantidade      INT            NOT NULL,
+    saldo_anterior  INT            NOT NULL,
+    saldo_posterior INT            NOT NULL,
+    motivo          VARCHAR(255),
+    atendimento_id  INT            REFERENCES atendimentos(id),
+    usuario_id      INT            NOT NULL REFERENCES usuarios(id),
+    criado_em       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: notificacoes
+-- Sistema de alertas inteligentes (INOVAÇÃO)
+-- ============================================================
+CREATE TABLE notificacoes (
+    id          SERIAL PRIMARY KEY,
+    usuario_id  INT          REFERENCES usuarios(id),
+    tipo        VARCHAR(50)  NOT NULL,
+    titulo      VARCHAR(200) NOT NULL,
+    mensagem    TEXT,
+    lida        BOOLEAN      NOT NULL DEFAULT FALSE,
+    link        VARCHAR(500),
+    criado_em   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: logs_acesso
+-- Auditoria de ações dos usuários no sistema
+-- ============================================================
+CREATE TABLE logs_acesso (
+    id          SERIAL PRIMARY KEY,
+    usuario_id  INT          REFERENCES usuarios(id),
+    acao        VARCHAR(100) NOT NULL,
+    tabela      VARCHAR(100),
+    registro_id INT,
+    ip          VARCHAR(45),
+    detalhe     TEXT,
+    criado_em   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- ÍNDICES para performance
+-- ============================================================
+CREATE INDEX idx_pessoas_cpf        ON pessoas(cpf);
+CREATE INDEX idx_pessoas_nome       ON pessoas(nome);
+CREATE INDEX idx_produtos_codigo    ON produtos(codigo);
+CREATE INDEX idx_produtos_categoria ON produtos(categoria_id);
+CREATE INDEX idx_atend_pessoa       ON atendimentos(pessoa_id);
+CREATE INDEX idx_atend_usuario      ON atendimentos(usuario_id);
+CREATE INDEX idx_atend_status       ON atendimentos(status);
+CREATE INDEX idx_atend_itens        ON atendimento_itens(atendimento_id);
+CREATE INDEX idx_mov_produto        ON movimentacoes_estoque(produto_id);
+CREATE INDEX idx_notif_usuario      ON notificacoes(usuario_id);
+ 
+-- ============================================================
+-- DADOS INICIAIS (seed)
+-- ============================================================
+ 
+INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES
+  ('Administrador', 'admin@sistema.com', '$2b$12$HASH_BCRYPT_AQUI', 'admin'),
+  ('Gerente Padrão', 'gerente@sistema.com', '$2b$12$HASH_BCRYPT_AQUI', 'gerente');
+ 
+INSERT INTO categorias (nome, descricao, tipo) VALUES
+  ('Medicamentos',   'Produtos farmacêuticos em geral',    'produto'),
+  ('Exames',         'Serviços de diagnóstico',            'servico'),
+  ('Consultas',      'Atendimentos clínicos',              'atendimento'),
+  ('Equipamentos',   'Equipamentos e acessórios',          'produto'),
+  ('Procedimentos',  'Procedimentos e intervenções',       'servico');
