@@ -1,1 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestão — Protótipo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --surf2:   #1c2330;
+    --border:  #30363d;
+    --accent:  #2ea043;
+    --blue:    #388bfd;
+    --danger:  #f85149;
+    --warn:    #d29922;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --radius:  10px;
+    --fh:      'DM Serif Display', serif;
+    --fb:      'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--fb); font-size: 14px; }
 
+  /* ── DEMO NAV ── */
+  .demo-nav { display: flex; gap: 6px; padding: 12px 22px; background: var(--surf2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .demo-nav button { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--fb); font-size: 13px; transition: all .2s; }
+  .demo-nav button.active, .demo-nav button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: calc(100vh - 46px); }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── LOGIN ── */
+  #login { align-items: center; justify-content: center; background: radial-gradient(ellipse at 60% 40%, #0d2b1a 0%, #0d1117 70%); }
+  .login-card { width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 44px 36px; }
+  .login-logo { font-family: var(--fh); font-size: 26px; color: var(--accent); margin-bottom: 4px; }
+  .login-sub  { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .7px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 14px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); font-family: var(--fb); font-size: 14px;
+    outline: none; transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); }
+  .btn-primary { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: var(--radius); color: #fff; font-family: var(--fb); font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+  .btn-primary:hover { opacity: .85; }
+  .login-footer { margin-top: 20px; text-align: center; font-size: 12px; color: var(--muted); }
+  .login-footer a { color: var(--blue); text-decoration: none; }
+
+  /* ── SHELL ── */
+  .shell { display: flex; height: calc(100vh - 46px); overflow: hidden; }
+  .sidebar { width: 228px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; }
+  .sidebar-logo { font-family: var(--fh); font-size: 20px; color: var(--accent); padding: 0 20px 20px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo span { font-family: var(--fb); font-size: 11px; color: var(--muted); display: block; }
+  .nav-group { padding: 14px 20px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; color: var(--muted); cursor: pointer; border-left: 3px solid transparent; transition: all .15s; font-size: 13.5px; }
+  .nav-item:hover, .nav-item.active { color: var(--text); background: var(--surf2); border-left-color: var(--accent); }
+  .nav-item .ic { font-size: 16px; }
+  .sidebar-footer { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .uinfo { font-size: 12.5px; }
+  .uinfo .role { font-size: 11px; color: var(--muted); }
+  .main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+  /* ── TOPBAR ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .page-title { font-family: var(--fh); font-size: 26px; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 13px; }
+  .topbar-right { display: flex; gap: 10px; align-items: center; }
+  .icon-action { position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
+  .notif-dot { width: 8px; height: 8px; background: var(--danger); border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+
+  /* ── KPI ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 8px; }
+  .kpi-value { font-family: var(--fh); font-size: 32px; }
+  .kpi-delta { font-size: 12px; margin-top: 4px; }
+  .kpi-delta.up { color: var(--accent); }
+  .kpi-delta.down { color: var(--danger); }
+
+  /* ── CARDS ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-size: 11px; font-weight: 600; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; }
+
+  /* ── ATEND ITEM (dashboard) ── */
+  .ai { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .ai:last-child { border-bottom: none; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge.aberto       { background: #1c2a3a; color: var(--blue); }
+  .badge.em_andamento { background: #2b2000; color: var(--warn); }
+  .badge.concluido    { background: #0d2b1a; color: var(--accent); }
+  .badge.urgente      { background: #2b1119; color: var(--danger); }
+  .badge.normal       { background: #1c2a3a; color: var(--blue); }
+  .badge.baixa        { background: #1a1f2b; color: var(--muted); }
+  .badge.alta         { background: #2b2000; color: var(--warn); }
+  .badge.cancelado    { background: #2b1119; color: var(--danger); }
+
+  /* ── HISTORICO ITEM (dashboard) ── */
+  .hist-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 4px; flex-shrink: 0; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-box { flex: 1; min-width: 200px; position: relative; }
+  .search-box input { width: 100%; padding: 9px 14px 9px 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--fb); outline: none; font-size: 13px; }
+  .search-box::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; }
+  .sel { padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--fb); outline: none; font-size: 13px; }
+  .btn-sm { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: var(--fb); font-size: 13px; transition: all .15s; }
+  .btn-sm:hover { border-color: var(--blue); color: var(--blue); }
+  .btn-green { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-green:hover { opacity: .85; color: #fff; }
+
+  /* ── TABLE ── */
+  .card-table { padding: 0; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 500; }
+  td { padding: 13px 14px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surf2); }
+  .actions { display: flex; gap: 6px; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .15s; }
+  .icon-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .icon-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.g { background: var(--accent); }
+  .dot.r { background: var(--danger); }
+  .dot.y { background: var(--warn); }
+
+  /* ── MODAL ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 540px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+  .modal-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+  .modal-title { font-family: var(--fh); font-size: 20px; }
+  .modal-close { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fgrid .full { grid-column: 1/-1; }
+  .modal-ftr { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+  .btn-cancel { padding: 9px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--fb); }
+  .btn-save { padding: 9px 22px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; cursor: pointer; font-family: var(--fb); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- NAVEGAÇÃO DO PROTÓTIPO -->
+<nav class="demo-nav">
+  <button class="active" onclick="go('login')">🔐 Login</button>
+  <button onclick="go('dashboard')">🏠 Dashboard</button>
+  <button onclick="go('pessoas')">👥 Pessoas</button>
+  <button onclick="go('atendimentos')">🎫 Atendimentos</button>
+</nav>
+
+<!-- ════════════════════════════════
+     TELA 1 — LOGIN
+════════════════════════════════ -->
+<section id="login" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">⬡ GestãoPro</div>
+    <div class="login-sub">Plataforma integrada de atendimento</div>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" value="admin@sistema.com" placeholder="admin@sistema.com">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" value="12345678" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="go('dashboard')">Entrar no sistema</button>
+    <div class="login-footer">Esqueceu a senha? <a href="#">Recuperar acesso</a></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     TELA 2 — DASHBOARD
+════════════════════════════════ -->
+<section id="dashboard" class="screen">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">⬡ GestãoPro <span>v2.0 — Admin</span></div>
+      <div class="nav-group">Principal</div>
+      <div class="nav-item active" onclick="go('dashboard')"><span class="ic">🏠</span> Dashboard</div>
+      <div class="nav-item" onclick="go('pessoas')"><span class="ic">👥</span> Pessoas</div>
+      <div class="nav-item" onclick="go('atendimentos')"><span class="ic">🎫</span> Atendimentos</div>
+      <div class="nav-group">Sistema</div>
+      <div class="nav-item"><span class="ic">📊</span> Relatórios</div>
+      <div class="nav-item"><span class="ic">🔔</span> Notificações</div>
+      <div class="nav-item"><span class="ic">⚙️</span> Configurações</div>
+      <div class="sidebar-footer">
+        <div class="avatar">A</div>
+        <div class="uinfo">Administrador <div class="role">admin@sistema.com</div></div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Quarta-feira, 01 de abril de 2026</div>
+        </div>
+        <div class="topbar-right">
+          <div class="icon-action">🔔<span class="notif-dot"></span></div>
+          <div class="avatar">A</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Atendimentos Hoje</div>
+          <div class="kpi-value">47</div>
+          <div class="kpi-delta up">↑ 12% vs ontem</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pessoas Ativas</div>
+          <div class="kpi-value">1.284</div>
+          <div class="kpi-delta up">↑ 8 novos hoje</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Urgentes Abertos</div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-delta down">↑ requer atenção</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Últimos Atendimentos</div>
+          <div class="ai">
+            <span class="badge urgente">Urgente</span>
+            <div style="flex:1"><strong>Maria Santos</strong><div style="font-size:11px;color:var(--muted)">Consulta · há 5 min</div></div>
+            <span class="badge em_andamento">Em andamento</span>
+          </div>
+          <div class="ai">
+            <span class="badge normal">Normal</span>
+            <div style="flex:1"><strong>João Pereira</strong><div style="font-size:11px;color:var(--muted)">Exame · há 18 min</div></div>
+            <span class="badge aberto">Aberto</span>
+          </div>
+          <div class="ai">
+            <span class="badge baixa">Baixa</span>
+            <div style="flex:1"><strong>Ana Oliveira</strong><div style="font-size:11px;color:var(--muted)">Retorno · há 35 min</div></div>
+            <span class="badge concluido">Concluído</span>
+          </div>
+          <div class="ai">
+            <span class="badge alta">Alta</span>
+            <div style="flex:1"><strong>Carlos Lima</strong><div style="font-size:11px;color:var(--muted)">Procedimento · há 1h</div></div>
+            <span class="badge em_andamento">Em andamento</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⭐ Histórico Recente de Mudanças</div>
+          <div class="hist-item">
+            <div class="hist-dot" style="background:var(--warn)"></div>
+            <div>
+              <strong style="font-size:13px">#AT-0047</strong> · Maria Santos
+              <div style="font-size:11px;color:var(--muted)">aberto → <span style="color:var(--warn)">em_andamento</span> · por Operador · há 3 min</div>
+            </div>
+          </div>
+          <div class="hist-item">
+            <div class="hist-dot"></div>
+            <div>
+              <strong style="font-size:13px">#AT-0045</strong> · Ana Oliveira
+              <div style="font-size:11px;color:var(--muted)">em_andamento → <span style="color:var(--accent)">concluido</span> · por Gerente · há 38 min</div>
+            </div>
+          </div>
+          <div class="hist-item">
+            <div class="hist-dot" style="background:var(--danger)"></div>
+            <div>
+              <strong style="font-size:13px">#AT-0044</strong> · Pedro Costa
+              <div style="font-size:11px;color:var(--muted)">aberto → <span style="color:var(--danger)">cancelado</span> · por Admin · há 1h</div>
+            </div>
+          </div>
+          <div class="hist-item">
+            <div class="hist-dot" style="background:var(--blue)"></div>
+            <div>
+              <strong style="font-size:13px">#AT-0043</strong> · Lucia Ferreira
+              <div style="font-size:11px;color:var(--muted)">— → <span style="color:var(--blue)">aberto</span> · por Operador · há 2h</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     TELA 3 — PESSOAS
+════════════════════════════════ -->
+<section id="pessoas" class="screen">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">⬡ GestãoPro <span>v2.0 — Admin</span></div>
+      <div class="nav-group">Principal</div>
+      <div class="nav-item" onclick="go('dashboard')"><span class="ic">🏠</span> Dashboard</div>
+      <div class="nav-item active"><span class="ic">👥</span> Pessoas</div>
+      <div class="nav-item" onclick="go('atendimentos')"><span class="ic">🎫</span> Atendimentos</div>
+      <div class="nav-group">Sistema</div>
+      <div class="nav-item"><span class="ic">📊</span> Relatórios</div>
+      <div class="nav-item"><span class="ic">🔔</span> Notificações</div>
+      <div class="nav-item"><span class="ic">⚙️</span> Configurações</div>
+      <div class="sidebar-footer">
+        <div class="avatar">A</div>
+        <div class="uinfo">Administrador <div class="role">admin@sistema.com</div></div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Pessoas</div>
+          <div class="page-sub">Cadastro de clientes, pacientes e beneficiários</div>
+        </div>
+        <div class="topbar-right">
+          <div class="icon-action">🔔<span class="notif-dot"></span></div>
+          <div class="avatar">A</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box"><input placeholder="Buscar por nome, CPF ou e-mail…"></div>
+        <select class="sel">
+          <option>Todos</option><option>Ativos</option><option>Inativos</option>
+        </select>
+        <button class="btn-sm btn-green" onclick="openModal('modalPessoa')">+ Nova Pessoa</button>
+      </div>
+
+      <div class="card card-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th><th>CPF</th><th>Telefone</th><th>Cidade</th><th>Status</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Maria Santos</strong><div style="font-size:11px;color:var(--muted)">maria@email.com</div></td>
+              <td>123.456.789-00</td><td>(69) 99801-2345</td><td>Porto Velho/RO</td>
+              <td><span class="dot g"></span>Ativo</td>
+              <td><div class="actions"><button class="icon-btn">✏️</button><button class="icon-btn del">🗑️</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>João Pereira</strong><div style="font-size:11px;color:var(--muted)">joao@email.com</div></td>
+              <td>987.654.321-00</td><td>(69) 98712-0001</td><td>Porto Velho/RO</td>
+              <td><span class="dot g"></span>Ativo</td>
+              <td><div class="actions"><button class="icon-btn">✏️</button><button class="icon-btn del">🗑️</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Ana Oliveira</strong><div style="font-size:11px;color:var(--muted)">ana@email.com</div></td>
+              <td>111.222.333-44</td><td>(69) 99123-5678</td><td>Ji-Paraná/RO</td>
+              <td><span class="dot r"></span>Inativo</td>
+              <td><div class="actions"><button class="icon-btn">✏️</button><button class="icon-btn del">🗑️</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Carlos Lima</strong><div style="font-size:11px;color:var(--muted)">carlos@email.com</div></td>
+              <td>444.555.666-77</td><td>(69) 99456-7890</td><td>Ariquemes/RO</td>
+              <td><span class="dot g"></span>Ativo</td>
+              <td><div class="actions"><button class="icon-btn">✏️</button><button class="icon-btn del">🗑️</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Lucia Ferreira</strong><div style="font-size:11px;color:var(--muted)">lucia@email.com</div></td>
+              <td>555.666.777-88</td><td>(69) 99234-6789</td><td>Porto Velho/RO</td>
+              <td><span class="dot g"></span>Ativo</td>
+              <td><div class="actions"><button class="icon-btn">✏️</button><button class="icon-btn del">🗑️</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     TELA 4 — ATENDIMENTOS
+════════════════════════════════ -->
+<section id="atendimentos" class="screen">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">⬡ GestãoPro <span>v2.0 — Admin</span></div>
+      <div class="nav-group">Principal</div>
+      <div class="nav-item" onclick="go('dashboard')"><span class="ic">🏠</span> Dashboard</div>
+      <div class="nav-item" onclick="go('pessoas')"><span class="ic">👥</span> Pessoas</div>
+      <div class="nav-item active"><span class="ic">🎫</span> Atendimentos</div>
+      <div class="nav-group">Sistema</div>
+      <div class="nav-item"><span class="ic">📊</span> Relatórios</div>
+      <div class="nav-item"><span class="ic">🔔</span> Notificações</div>
+      <div class="nav-item"><span class="ic">⚙️</span> Configurações</div>
+      <div class="sidebar-footer">
+        <div class="avatar">A</div>
+        <div class="uinfo">Administrador <div class="role">admin@sistema.com</div></div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Atendimentos</div>
+          <div class="page-sub">Registro e acompanhamento de atendimentos</div>
+        </div>
+        <div class="topbar-right">
+          <div class="icon-action">🔔<span class="notif-dot"></span></div>
+          <div class="avatar">A</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box"><input placeholder="Buscar por número, pessoa ou responsável…"></div>
+        <select class="sel">
+          <option>Todos os status</option><option>Aberto</option><option>Em andamento</option><option>Concluído</option><option>Cancelado</option>
+        </select>
+        <select class="sel">
+          <option>Todas prioridades</option><option>Urgente</option><option>Alta</option><option>Normal</option><option>Baixa</option>
+        </select>
+        <button class="btn-sm btn-green" onclick="openModal('modalAtend')">+ Novo Atendimento</button>
+      </div>
+
+      <div class="card card-table">
+        <table>
+          <thead>
+            <tr><th>Nº</th><th>Pessoa</th><th>Categoria</th><th>Canal</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th>Ações</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted)">#AT-0047</td>
+              <td><strong>Maria Santos</strong></td>
+              <td style="font-size:12px;color:var(--muted)">Consulta</td>
+              <td style="font-size:12px">🏥 Presencial</td>
+              <td><span class="badge urgente">Urgente</span></td>
+              <td><span class="badge em_andamento">Em andamento</span></td>
+              <td style="font-size:11px;color:var(--muted)">01/04 08:12</td>
+              <td><div class="actions"><button class="icon-btn" onclick="openModal('modalHistorico')">🕓</button><button class="icon-btn">✏️</button></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted)">#AT-0046</td>
+              <td><strong>João Pereira</strong></td>
+              <td style="font-size:12px;color:var(--muted)">Exame</td>
+              <td style="font-size:12px">📞 Telefone</td>
+              <td><span class="badge normal">Normal</span></td>
+              <td><span class="badge aberto">Aberto</span></td>
+              <td style="font-size:11px;color:var(--muted)">01/04 07:55</td>
+              <td><div class="actions"><button class="icon-btn" onclick="openModal('modalHistorico')">🕓</button><button class="icon-btn">✏️</button></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted)">#AT-0045</td>
+              <td><strong>Ana Oliveira</strong></td>
+              <td style="font-size:12px;color:var(--muted)">Retorno</td>
+              <td style="font-size:12px">💬 Chat</td>
+              <td><span class="badge baixa">Baixa</span></td>
+              <td><span class="badge concluido">Concluído</span></td>
+              <td style="font-size:11px;color:var(--muted)">31/03 16:40</td>
+              <td><div class="actions"><button class="icon-btn" onclick="openModal('modalHistorico')">🕓</button><button class="icon-btn">✏️</button></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted)">#AT-0044</td>
+              <td><strong>Pedro Costa</strong></td>
+              <td style="font-size:12px;color:var(--muted)">Triagem</td>
+              <td style="font-size:12px">🏥 Presencial</td>
+              <td><span class="badge alta">Alta</span></td>
+              <td><span class="badge cancelado">Cancelado</span></td>
+              <td style="font-size:11px;color:var(--muted)">31/03 14:10</td>
+              <td><div class="actions"><button class="icon-btn" onclick="openModal('modalHistorico')">🕓</button><button class="icon-btn">✏️</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ══════════ MODAL — NOVA PESSOA ══════════ -->
+<div id="modalPessoa" class="overlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Nova Pessoa</div>
+      <button class="modal-close" onclick="closeModal('modalPessoa')">✕</button>
+    </div>
+    <div class="fgrid">
+      <div class="field full"><label>Nome Completo *</label><input type="text" placeholder="Digite o nome completo"></div>
+      <div class="field"><label>CPF</label><input type="text" placeholder="000.000.000-00"></div>
+      <div class="field"><label>Data de Nascimento</label><input type="date"></div>
+      <div class="field"><label>Gênero</label>
+        <select><option>Masculino</option><option>Feminino</option><option>Outro</option></select>
+      </div>
+      <div class="field"><label>Telefone</label><input type="text" placeholder="(69) 99999-9999"></div>
+      <div class="field full"><label>E-mail</label><input type="email" placeholder="email@exemplo.com"></div>
+      <div class="field full"><label>Endereço</label><input type="text" placeholder="Rua, número, bairro"></div>
+      <div class="field"><label>Cidade</label><input type="text" placeholder="Porto Velho"></div>
+      <div class="field"><label>Estado</label>
+        <select><option>RO</option><option>AC</option><option>AM</option><option>MT</option></select>
+      </div>
+      <div class="field"><label>CEP</label><input type="text" placeholder="76800-000"></div>
+      <div class="field full"><label>Observações</label><textarea rows="3" placeholder="Observações adicionais…" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('modalPessoa')">Cancelar</button>
+      <button class="btn-save">Salvar Pessoa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL — NOVO ATENDIMENTO ══════════ -->
+<div id="modalAtend" class="overlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Novo Atendimento</div>
+      <button class="modal-close" onclick="closeModal('modalAtend')">✕</button>
+    </div>
+    <div class="fgrid">
+      <div class="field full"><label>Pessoa / Paciente *</label><input type="text" placeholder="Buscar por nome ou CPF…"></div>
+      <div class="field"><label>Categoria *</label>
+        <select><option>Consulta</option><option>Exame</option><option>Procedimento</option><option>Triagem</option><option>Retorno</option><option>Suporte</option></select>
+      </div>
+      <div class="field"><label>Canal *</label>
+        <select><option>Presencial</option><option>Telefone</option><option>E-mail</option><option>Chat</option><option>App</option></select>
+      </div>
+      <div class="field"><label>Prioridade *</label>
+        <select><option>Normal</option><option>Baixa</option><option>Alta</option><option>Urgente</option></select>
+      </div>
+      <div class="field"><label>Responsável *</label>
+        <select><option>Operador</option><option>Gerente</option><option>Administrador</option></select>
+      </div>
+      <div class="field full"><label>Descrição</label><textarea rows="3" placeholder="Descreva o motivo do atendimento…" style="resize:vertical"></textarea></div>
+      <div class="field full"><label>Observações</label><textarea rows="2" style="resize:vertical" placeholder="Informações adicionais…"></textarea></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('modalAtend')">Cancelar</button>
+      <button class="btn-save">Abrir Atendimento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL — HISTÓRICO DE ATENDIMENTO ⭐ ══════════ -->
+<div id="modalHistorico" class="overlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">🕓 Histórico · #AT-0047</div>
+      <button class="modal-close" onclick="closeModal('modalHistorico')">✕</button>
+    </div>
+    <div style="margin-bottom:18px;padding:12px 14px;background:var(--surf2);border-radius:var(--radius);font-size:13px">
+      <strong>Maria Santos</strong> · Consulta · 
+      <span class="badge urgente" style="margin-left:4px">Urgente</span>
+      <span class="badge em_andamento" style="margin-left:4px">Em andamento</span>
+    </div>
+    <!-- Timeline de histórico -->
+    <div style="position:relative;padding-left:24px;border-left:2px solid var(--border)">
+      <div style="margin-bottom:20px">
+        <div style="position:absolute;left:-5px;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:3px"></div>
+        <div style="font-size:12px;color:var(--muted)">01/04/2026 às 08:18 · por <strong style="color:var(--text)">Operador</strong></div>
+        <div style="margin-top:4px;font-size:13px">
+          <span class="badge aberto">aberto</span>
+          <span style="margin:0 6px;color:var(--muted)">→</span>
+          <span class="badge em_andamento">em_andamento</span>
+        </div>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted);font-style:italic">"Paciente chegou ao consultório, triagem iniciada."</div>
+      </div>
+      <div>
+        <div style="position:absolute;left:-5px;width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:3px"></div>
+        <div style="font-size:12px;color:var(--muted)">01/04/2026 às 08:12 · por <strong style="color:var(--text)">Operador</strong></div>
+        <div style="margin-top:4px;font-size:13px">
+          <span style="color:var(--muted);font-size:12px">— (novo)</span>
+          <span style="margin:0 6px;color:var(--muted)">→</span>
+          <span class="badge aberto">aberto</span>
+        </div>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted);font-style:italic">"Atendimento aberto via recepção."</div>
+      </div>
+    </div>
+    <!-- Registrar nova mudança -->
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:12px">Registrar Mudança de Status</div>
+      <div class="fgrid">
+        <div class="field">
+          <label>Novo Status *</label>
+          <select><option>concluido</option><option>cancelado</option><option>em_andamento</option><option>aberto</option></select>
+        </div>
+        <div class="field full"><label>Observação</label><textarea rows="2" placeholder="Justifique a mudança…" style="resize:vertical"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('modalHistorico')">Fechar</button>
+      <button class="btn-save">Salvar Mudança</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const screens = ['login','dashboard','pessoas','atendimentos'];
+
+  function go(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.demo-nav button').forEach((b, i) => {
+      b.classList.toggle('active', screens[i] === id);
+    });
+  }
+
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  document.querySelectorAll('.overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+</body>
+</html>
