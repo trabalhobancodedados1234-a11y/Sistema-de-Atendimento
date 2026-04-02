@@ -1,1 +1,158 @@
-
+-- ============================================================
+--  SCHEMA DO BANCO DE DADOS
+--  Sistema de Gestão de Pessoas e Atendimentos
+--  Versão: 2.0
+--  Banco: PostgreSQL (compatível com MySQL com ajustes menores)
+-- ============================================================
+ 
+-- ============================================================
+-- TABELA: usuarios
+-- Controla o acesso ao sistema (login/autenticação)
+-- ============================================================
+CREATE TABLE usuarios (
+    id            SERIAL          PRIMARY KEY,
+    nome          VARCHAR(120)    NOT NULL,
+    email         VARCHAR(180)    NOT NULL UNIQUE,
+    senha_hash    VARCHAR(255)    NOT NULL,
+    perfil        VARCHAR(30)     NOT NULL DEFAULT 'operador'
+                    CHECK (perfil IN ('admin', 'gerente', 'operador')),
+    ativo         BOOLEAN         NOT NULL DEFAULT TRUE,
+    criado_em     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: pessoas
+-- Cadastro de clientes / pacientes / beneficiários
+-- ============================================================
+CREATE TABLE pessoas (
+    id            SERIAL          PRIMARY KEY,
+    nome          VARCHAR(150)    NOT NULL,
+    cpf           CHAR(11)        UNIQUE,
+    data_nasc     DATE,
+    genero        CHAR(1)         CHECK (genero IN ('M', 'F', 'O')),
+    email         VARCHAR(180),
+    telefone      VARCHAR(20),
+    endereco      VARCHAR(255),
+    cidade        VARCHAR(100),
+    estado        CHAR(2),
+    cep           CHAR(8),
+    observacoes   TEXT,
+    ativo         BOOLEAN         NOT NULL DEFAULT TRUE,
+    criado_por    INT             REFERENCES usuarios(id),
+    criado_em     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: categorias_atendimento
+-- Tipos / categorias de atendimento prestado
+-- ============================================================
+CREATE TABLE categorias_atendimento (
+    id            SERIAL          PRIMARY KEY,
+    nome          VARCHAR(100)    NOT NULL UNIQUE,
+    descricao     TEXT,
+    ativo         BOOLEAN         NOT NULL DEFAULT TRUE,
+    criado_em     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: atendimentos
+-- Registro central de atendimentos vinculando pessoa e usuário
+-- ============================================================
+CREATE TABLE atendimentos (
+    id              SERIAL          PRIMARY KEY,
+    numero          VARCHAR(20)     NOT NULL UNIQUE,
+    pessoa_id       INT             NOT NULL REFERENCES pessoas(id),
+    usuario_id      INT             NOT NULL REFERENCES usuarios(id),
+    categoria_id    INT             REFERENCES categorias_atendimento(id),
+    status          VARCHAR(30)     NOT NULL DEFAULT 'aberto'
+                      CHECK (status IN ('aberto', 'em_andamento', 'concluido', 'cancelado')),
+    prioridade      VARCHAR(10)     NOT NULL DEFAULT 'normal'
+                      CHECK (prioridade IN ('baixa', 'normal', 'alta', 'urgente')),
+    canal           VARCHAR(30)     NOT NULL DEFAULT 'presencial'
+                      CHECK (canal IN ('presencial', 'telefone', 'email', 'chat', 'app')),
+    descricao       TEXT,
+    observacoes     TEXT,
+    data_abertura   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_conclusao  TIMESTAMP,
+    criado_em       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: historico_atendimento  ⭐ INOVAÇÃO
+-- Registra cada mudança de status ao longo do atendimento,
+-- permitindo rastreabilidade completa do fluxo
+-- ============================================================
+CREATE TABLE historico_atendimento (
+    id              SERIAL          PRIMARY KEY,
+    atendimento_id  INT             NOT NULL REFERENCES atendimentos(id) ON DELETE CASCADE,
+    usuario_id      INT             NOT NULL REFERENCES usuarios(id),
+    status_anterior VARCHAR(30),
+    status_novo     VARCHAR(30)     NOT NULL,
+    observacao      TEXT,
+    criado_em       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: notificacoes  ⭐ INOVAÇÃO
+-- Alertas automáticos do sistema para os usuários
+-- (ex: atendimento urgente, prazo excedido, novo atendimento)
+-- ============================================================
+CREATE TABLE notificacoes (
+    id              SERIAL          PRIMARY KEY,
+    usuario_id      INT             REFERENCES usuarios(id) ON DELETE SET NULL,
+    tipo            VARCHAR(60)     NOT NULL,
+    titulo          VARCHAR(200)    NOT NULL,
+    mensagem        TEXT,
+    lida            BOOLEAN         NOT NULL DEFAULT FALSE,
+    atendimento_id  INT             REFERENCES atendimentos(id) ON DELETE SET NULL,
+    criado_em       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- TABELA: logs_acesso
+-- Auditoria de ações realizadas pelos usuários no sistema
+-- ============================================================
+CREATE TABLE logs_acesso (
+    id              SERIAL          PRIMARY KEY,
+    usuario_id      INT             REFERENCES usuarios(id) ON DELETE SET NULL,
+    acao            VARCHAR(100)    NOT NULL,
+    tabela          VARCHAR(100),
+    registro_id     INT,
+    ip              VARCHAR(45),
+    detalhe         TEXT,
+    criado_em       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- ============================================================
+-- ÍNDICES para performance
+-- ============================================================
+CREATE INDEX idx_pessoas_cpf          ON pessoas(cpf);
+CREATE INDEX idx_pessoas_nome         ON pessoas(nome);
+CREATE INDEX idx_atend_pessoa         ON atendimentos(pessoa_id);
+CREATE INDEX idx_atend_usuario        ON atendimentos(usuario_id);
+CREATE INDEX idx_atend_categoria      ON atendimentos(categoria_id);
+CREATE INDEX idx_atend_status         ON atendimentos(status);
+CREATE INDEX idx_historico_atend      ON historico_atendimento(atendimento_id);
+CREATE INDEX idx_notif_usuario        ON notificacoes(usuario_id);
+CREATE INDEX idx_notif_lida           ON notificacoes(lida);
+CREATE INDEX idx_logs_usuario         ON logs_acesso(usuario_id);
+ 
+-- ============================================================
+-- DADOS INICIAIS (seed)
+-- ============================================================
+ 
+INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES
+  ('Administrador', 'admin@sistema.com',   '$2b$12$TROQUE_PELO_HASH_REAL', 'admin'),
+  ('Gerente',       'gerente@sistema.com', '$2b$12$TROQUE_PELO_HASH_REAL', 'gerente'),
+  ('Operador',      'op@sistema.com',      '$2b$12$TROQUE_PELO_HASH_REAL', 'operador');
+ 
+INSERT INTO categorias_atendimento (nome, descricao) VALUES
+  ('Consulta',     'Atendimento clínico geral'),
+  ('Exame',        'Solicitação ou entrega de exame diagnóstico'),
+  ('Procedimento', 'Intervenção ou procedimento especializado'),
+  ('Triagem',      'Classificação de risco e encaminhamento'),
+  ('Retorno',      'Revisão de atendimento anterior'),
+  ('Suporte',      'Atendimento de suporte e orientação');
